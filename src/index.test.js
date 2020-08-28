@@ -1,5 +1,5 @@
 import assert from 'assert';
-import { h } from 'preact';
+import { h, toChildArray, cloneElement } from 'preact';
 import registerElement from './index';
 
 function Clock ({ time }) {
@@ -97,6 +97,51 @@ it('handles kebab-case attributes with passthrough', () => {
 		root.innerHTML,
 		`<x-prop-name-transform ${kebabName}="01/01/2001" ${lowerName}="pretended to be camel"><span>01/01/2001 pretended to be camel 01/01/2001</span></x-prop-name-transform>`
 	);
+
+	document.body.removeChild(root);
+});
+
+let counter = 0;
+
+function TabGroup({ children }) {
+	const extendedChildren = toChildArray(children).map(child => {
+		if (child && child.type) {
+			return cloneElement(child, {
+				onActive: () => counter++
+			});
+		}
+		return child;
+	});
+
+	return <div class="children">{extendedChildren}</div>;
+}
+
+registerElement(TabGroup, 'x-tab-group', [], { shadow: true });
+
+function Tab({ children, onActive }) {
+	return (
+		<button class="children" onClick={onActive}>
+			{children}
+		</button>
+	);
+}
+
+registerElement(Tab, 'x-tab', [], { shadow: true });
+
+it('passes eventhandlers as props to children rendered as webcomponents', () => {
+	const root = document.createElement('div');
+	const tabgroup = document.createElement('x-tab-group');
+
+	const tab = document.createElement('x-tab');
+	tab.textContent = 'here is a tab';
+	tabgroup.appendChild(tab);
+
+	root.appendChild(tabgroup);
+	document.body.appendChild(root);
+
+	tab.shadowRoot.querySelector('button').click();
+
+	expect(counter).toBe(1);
 
 	document.body.removeChild(root);
 });
